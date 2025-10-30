@@ -1,0 +1,6 @@
+@PandorasFreshPlatform.API_HostAddress = http://localhost:5022
+
+GET {{PandorasFreshPlatform.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

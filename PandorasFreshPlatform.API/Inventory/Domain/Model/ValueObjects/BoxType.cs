@@ -6,6 +6,7 @@ public enum BoxType
     Refrigerated,
     DryStorage,
     Frozen,
-    Shelf
+    Shelf,
+    Other
 }
 

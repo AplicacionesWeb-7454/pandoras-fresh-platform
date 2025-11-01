@@ -1,2 +1,255 @@
-﻿@startuml
+﻿@startuml Class Diagram - Reporting & Analytics Bounded Context
+
+package "Reporting & Analytics Bounded Context" {
+    package "Domain" {
+        class Report {
+            +Report(string title, string description, EReportType type, int userId)
+            +Id: int
+            +Title: string
+            +Description: string
+            +Type: EReportType
+            +UserId: int
+            +User: User
+            +Status: EReportStatus
+            +GeneratedDate: DateTimeOffset?
+            +Parameters: List<ReportParameter>
+            +Schedules: List<ReportSchedule>
+            +Generate(): void
+            +Schedule(DateTime scheduleDate): void
+            +Export(): byte[]
+        }
+
+        class ReportTemplate {
+            +ReportTemplate(string name, string query, EReportType type)
+            +Id: int
+            +Name: string
+            +Query: string
+            +Type: EReportType
+            +IsActive: bool
+            +Parameters: List<TemplateParameter>
+        }
+
+        class AnalyticsDashboard {
+            +AnalyticsDashboard(string name, string description, int userId)
+            +Id: int
+            +Name: string
+            +Description: string
+            +UserId: int
+            +User: User
+            +Widgets: List<DashboardWidget>
+            +Layout: string
+            +IsDefault: bool
+        }
+
+        class DashboardWidget {
+            +DashboardWidget(string title, EWidgetType type, string configuration)
+            +Id: int
+            +Title: string
+            +Type: EWidgetType
+            +Configuration: string
+            +DashboardId: int
+            +PositionX: int
+            +PositionY: int
+            +Width: int
+            +Height: int
+        }
+
+        class AnalyticsMetric {
+            +AnalyticsMetric(string name, string query, EMetricType type)
+            +Id: int
+            +Name: string
+            +Query: string
+            +Type: EMetricType
+            +Value: decimal
+            +LastUpdated: DateTimeOffset
+            +Calculate(): void
+        }
+
+        class WasteAnalysis {
+            +WasteAnalysis(int periodDays, DateTime analysisDate)
+            +Id: int
+            +PeriodDays: int
+            +AnalysisDate: DateTime
+            +TotalWasteCost: decimal
+            +WasteByCategory: List<WasteCategory>
+            +Trends: List<WasteTrend>
+            +CalculateWasteMetrics(): void
+            +GenerateWasteReport(): WasteReport
+        }
+
+        enum EReportType {
+            WASTE_ANALYSIS
+            INVENTORY_SUMMARY
+            EXPIRY_ALERTS
+            STOCK_TURNOVER
+            COST_ANALYSIS
+        }
+
+        interface IReportQueryService {
+            +Handle(GetReportByIdQuery query): Task<Report?>
+            +Handle(GetAllReportsQuery query): Task<IEnumerable<Report>>
+            +Handle(GetReportsByTypeQuery query): Task<IEnumerable<Report>>
+        }
+
+        interface IReportCommandService {
+            +Handle(CreateReportCommand command): Task<Report?>
+            +Handle(GenerateReportCommand command): Task<Report?>
+            +Handle(ScheduleReportCommand command): Task<Report?>
+        }
+
+        interface IAnalyticsQueryService {
+            +Handle(GetDashboardByIdQuery query): Task<AnalyticsDashboard?>
+            +Handle(GetUserDashboardsQuery query): Task<IEnumerable<AnalyticsDashboard>>
+            +Handle(GetMetricsQuery query): Task<IEnumerable<AnalyticsMetric>>
+        }
+
+        interface IReportRepository extends IBaseRepository<Report> {
+            +FindByTypeAsync(EReportType type): Task<IEnumerable<Report>>
+            +FindScheduledReportsAsync(): Task<IEnumerable<Report>>
+            +FindByUserIdAsync(int userId): Task<IEnumerable<Report>>
+        }
+
+        interface IAnalyticsRepository extends IBaseRepository<AnalyticsDashboard> {
+            +FindByUserIdAsync(int userId): Task<IEnumerable<AnalyticsDashboard>>
+            +FindDefaultDashboardAsync(): Task<AnalyticsDashboard?>
+        }
+    }
+
+    package "Application" {
+        class ReportCommandService implements IReportCommandService {
+            +ReportCommandService(IReportRepository reportRepository, IReportGenerator reportGenerator)
+            +Handle(CreateReportCommand command): Task<Report?>
+            +Handle(GenerateReportCommand command): Task<Report?>
+            +Handle(ScheduleReportCommand command): Task<Report?>
+        }
+
+        class ReportQueryService implements IReportQueryService {
+            +ReportQueryService(IReportRepository reportRepository)
+            +Handle(GetReportByIdQuery query): Task<Report?>
+            +Handle(GetAllReportsQuery query): Task<IEnumerable<Report>>
+            +Handle(GetReportsByTypeQuery query): Task<IEnumerable<Report>>
+        }
+
+        class AnalyticsQueryService implements IAnalyticsQueryService {
+            +AnalyticsQueryService(IAnalyticsRepository analyticsRepository, IMetricCalculator metricCalculator)
+            +Handle(GetDashboardByIdQuery query): Task<AnalyticsDashboard?>
+            +Handle(GetUserDashboardsQuery query): Task<IEnumerable<AnalyticsDashboard>>
+            +Handle(GetMetricsQuery query): Task<IEnumerable<AnalyticsMetric>>
+        }
+
+        interface IReportGenerator {
+            +GenerateReport(Report report): Task<byte[]>
+        }
+
+        interface IMetricCalculator {
+            +CalculateMetrics(): Task<IEnumerable<AnalyticsMetric>>
+        }
+    }
+
+    package "Infrastructure" {
+        class ReportRepository implements IReportRepository {
+            +ReportRepository(AppDbContext context)
+            +AddAsync(Report entity): Task
+            +FindByIdAsync(int id): Task<Report?>
+            +Update(Report entity): void
+            +Remove(Report entity): void
+            +ListAsync(): Task<IEnumerable<Report>>
+            +FindByTypeAsync(EReportType type): Task<IEnumerable<Report>>
+            +FindScheduledReportsAsync(): Task<IEnumerable<Report>>
+            +FindByUserIdAsync(int userId): Task<IEnumerable<Report>>
+        }
+
+        class AnalyticsRepository implements IAnalyticsRepository {
+            +AnalyticsRepository(AppDbContext context)
+            +AddAsync(AnalyticsDashboard entity): Task
+            +FindByIdAsync(int id): Task<AnalyticsDashboard?>
+            +Update(AnalyticsDashboard entity): void
+            +Remove(AnalyticsDashboard entity): void
+            +ListAsync(): Task<IEnumerable<AnalyticsDashboard>>
+            +FindByUserIdAsync(int userId): Task<IEnumerable<AnalyticsDashboard>>
+            +FindDefaultDashboardAsync(): Task<AnalyticsDashboard?>
+        }
+
+        class PdfReportGenerator implements IReportGenerator {
+            +GenerateReport(Report report): Task<byte[]>
+        }
+
+        class AnalyticsMetricCalculator implements IMetricCalculator {
+            +CalculateMetrics(): Task<IEnumerable<AnalyticsMetric>>
+        }
+    }
+
+    package "Interfaces" {
+        class ReportsController {
+            +ReportsController(IReportCommandService reportCommandService, IReportQueryService reportQueryService)
+            +GetReportById(int reportId): Task<IActionResult>
+            +CreateReport(CreateReportResource resource): Task<IActionResult>
+            +GetAllReports(): Task<IActionResult>
+            +GenerateReport(int reportId): Task<IActionResult>
+        }
+
+        class AnalyticsController {
+            +AnalyticsController(IAnalyticsQueryService analyticsQueryService)
+            +GetDashboardById(int dashboardId): Task<IActionResult>
+            +GetUserDashboards(): Task<IActionResult>
+            +GetMetrics(): Task<IActionResult>
+        }
+
+        record CreateReportResource {
+            Title: string
+            Description: string
+            Type: EReportType
+        }
+
+        record ReportResource {
+            Id: int
+            Title: string
+            Description: string
+            Type: EReportType
+            Status: EReportStatus
+        }
+    }
+
+    ' Relationships within Reporting & Analytics
+    Report --> User : association
+    AnalyticsDashboard --> User : association
+    AnalyticsDashboard --> DashboardWidget : composition
+    
+    ReportCommandService ..> IReportRepository : dependency
+    ReportCommandService ..> IReportGenerator : dependency
+    ReportQueryService ..> IReportRepository : dependency
+    AnalyticsQueryService ..> IAnalyticsRepository : dependency
+    AnalyticsQueryService ..> IMetricCalculator : dependency
+    
+    ReportsController ..> IReportCommandService : dependency
+    ReportsController ..> IReportQueryService : dependency
+    AnalyticsController ..> IAnalyticsQueryService : dependency
+    
+    ReportRepository ..|> IReportRepository : implements
+    AnalyticsRepository ..|> IAnalyticsRepository : implements
+    PdfReportGenerator ..|> IReportGenerator : implements
+    AnalyticsMetricCalculator ..|> IMetricCalculator : implements
+}
+
+package "Shared" {
+    class User {
+        +Id: int
+        +Username: string
+    }
+
+    interface IBaseRepository<TEntity> {
+        +AddAsync(TEntity entity): Task
+        +FindByIdAsync(int id): Task<TEntity?>
+        +Update(TEntity entity): void
+        +Remove(TEntity entity): void
+        +ListAsync(): Task<IEnumerable<TEntity>>
+    }
+}
+
+
+' Cross-boundary relationships
+IReportRepository ..|> IBaseRepository : extends
+IAnalyticsRepository ..|> IBaseRepository : extends
+
+
 @enduml

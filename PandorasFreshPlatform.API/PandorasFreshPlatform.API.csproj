@@ -25,4 +25,16 @@
         <PackageReference Include="Swashbuckle.AspNetCore.Annotations" Version="9.0.6" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Folder Include="Analytics\Application\Internal\QueryServices\" />
+      <Folder Include="Analytics\Domain\Model\Entities\" />
+      <Folder Include="Analytics\Domain\Model\Queries\" />
+      <Folder Include="Analytics\Domain\Model\ValueObjects\" />
+      <Folder Include="Analytics\Domain\Repositories\" />
+      <Folder Include="Analytics\Domain\Services\" />
+      <Folder Include="Analytics\Infrastructure\Persistence\EFC\Repositories\" />
+      <Folder Include="Analytics\Interfaces\REST\Resources\" />
+      <Folder Include="Analytics\Interfaces\REST\Transform\" />
+    </ItemGroup>
+
 </Project>

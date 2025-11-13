@@ -10,6 +10,7 @@
 
     <ItemGroup>
         <!-- Audit Trails related packages -->
+        <PackageReference Include="Cortex.Mediator" Version="2.1.0" />
         <PackageReference Include="EntityFrameworkCore.CreatedUpdatedDate" Version="8.00" />
         <!-- Entity Framework Core packages -->
         <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.10" />
@@ -23,17 +24,6 @@
         <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.10" />
         <PackageReference Include="Swashbuckle.AspNetCore" Version="9.0.6" />
         <PackageReference Include="Swashbuckle.AspNetCore.Annotations" Version="9.0.6" />
-    </ItemGroup>
-
-    <ItemGroup>
-      <Folder Include="Inventory\Application\Internal\CommandServices\" />
-      <Folder Include="Inventory\Application\Internal\QueryServices\" />
-      <Folder Include="Inventory\Domain\Model\Commands\" />
-      <Folder Include="Inventory\Domain\Model\Queries\" />
-      <Folder Include="Inventory\Domain\Repositories\" />
-      <Folder Include="Inventory\Infrastructure\Persistence\EFC\Repositories\" />
-      <Folder Include="Inventory\Interfaces\REST\Resources\" />
-      <Folder Include="Inventory\Interfaces\REST\Transform\" />
     </ItemGroup>
 
     <ItemGroup>

@@ -5,9 +5,6 @@ namespace PandorasFreshPlatform.API.Inventory.Domain.Model.Aggregates;
 
 public partial class Product : IEntityWithCreatedUpdatedDate
 {
-    [Column("CreatedAt")] 
-    public DateTimeOffset? CreatedDate { get; set; }
-    
-    [Column("UpdatedAt")] 
-    public DateTimeOffset? UpdatedDate { get; set; }
+    [Column("CreatedAt")] public DateTimeOffset? CreatedDate { get; set; }
+    [Column("UpdatedAt")] public DateTimeOffset? UpdatedDate { get; set; }
 }

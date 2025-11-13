@@ -3,23 +3,27 @@
 namespace PandorasFreshPlatform.API.Inventory.Domain.Model.Commands;
 
 /// <summary>
-///     Command to create an Inventory .
+/// Command to create a storage box.
 /// </summary>
-/// <param name="StorageBoxId">
-///     The Id of the Storage Box 
+/// <param name="Label">
+/// The label of the storage box to create.
 /// </param>
-///
-/// <param name="Name">
-///     The name of the Storage Box 
+/// <param name="MaxCapacity">
+/// The maximum capacity of the storage box.
 /// </param>
-///
-/// <param name="BoxType">
-///     The Type of the Storage Box
+/// <param name="CurrentCapacity">
+/// The current capacity of the storage box.
 /// </param>
-///
-///<param name="SensorId"> 
-///     The Id of the Sensor of the Storage Box
-/// </param> 
-/// 
-
-public record CreateStorageBoxCommand(int StorageBoxId, string Name, BoxType BoxType, string? SensorId = null); 
+/// <param name="TemperatureRange">
+/// The temperature range for the storage box.
+/// </param>
+/// <param name="InventoryId">
+/// The ID of the inventory to add the storage box to.
+/// </param>
+public record CreateStorageBoxCommand(
+    string Label,
+    int MaxCapacity,
+    int CurrentCapacity,
+    string TemperatureRange,
+    InventoryItemId InventoryId
+);

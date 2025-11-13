@@ -1,105 +1,75 @@
-﻿using PandorasFreshPlatform.API.Inventory.Domain.Model.Entities;
+﻿using PandorasFreshPlatform.API.Inventory.Domain.Model.Commands;
+using PandorasFreshPlatform.API.Inventory.Domain.Model.Entities;
 using PandorasFreshPlatform.API.Inventory.Domain.Model.ValueObjects;
 
 namespace PandorasFreshPlatform.API.Inventory.Domain.Model.Aggregates;
 
-
+/// <summary>
+/// Product aggregate root entity
+/// </summary>
 public partial class Product
 {
-    public ProductIdentifier Id { get; private set; }
+    /// <summary>
+    /// Default constructor for the product entity
+    /// </summary>
+    public Product()
+    {
+        Name = string.Empty;
+        Description = string.Empty;
+        Barcode = new Barcode(string.Empty);
+    }
+
+    /// <summary>
+    /// Constructor for the product entity
+    /// </summary>
+    public Product(string name, string description, Barcode barcode, CategoryId categoryId) : this()
+    {
+        Name = name;
+        Description = description;
+        Barcode = barcode;
+        SetCategoryId(categoryId);
+    }
+
+    public Product(CreateProductCommand command) : this(
+        command.Name, 
+        command.Description, 
+        new Barcode(command.Barcode), 
+        command.CategoryId)
+    {
+    }
+
+    public int Id { get; private set; }  // Own ID as primitive
     public string Name { get; private set; }
-    public string Category { get; private set; }
-    public int TotalQuantity { get; private set; }
-    public DateTime ExpirationDate { get; private set; }
-    public decimal? OptimalTemperature { get; private set; }
-    public decimal? OptimalHumidity { get; private set; }
-    public string? Barcode { get; private set; }
+    public string Description { get; private set; }
+    public Barcode Barcode { get; private set; }
+    
+    // Foreign key as primitive for database mapping
     public int CategoryId { get; private set; }
     
-    // Computed properties
-    public int DaysUntilExpiration => (int)(ExpirationDate - DateTime.UtcNow).TotalDays;
-    public EProductStatus Status => CalculateStatus();
-    
-    private Product() 
+    // Navigation property to Category
+    public virtual Category Category { get; private set; }
+
+    /// <summary>
+    /// Update product information
+    /// </summary>
+    public void UpdateInformation(string name, string description, Barcode barcode, CategoryId categoryId)
     {
-        // For EF
-        Id = new ProductIdentifier();
-        Name = string.Empty;
-        Category = string.Empty;
-    }
-    
-    public Product(string name, string category, DateTime expirationDate, 
-                  decimal? optimalTemperature = null, decimal? optimalHumidity = null, 
-                  string? barcode = null, int categoryId = 0)
-    {
-        if (string.IsNullOrWhiteSpace(name))
-            throw new ArgumentException("Product name is required");
-            
-        if (expirationDate <= DateTime.UtcNow)
-            throw new ArgumentException("Expiration date must be in the future");
-        
-        Id = new ProductIdentifier();
-        Name = name.Trim();
-        Category = category.Trim();
-        ExpirationDate = expirationDate;
-        OptimalTemperature = optimalTemperature;
-        OptimalHumidity = optimalHumidity;
+        Name = name;
+        Description = description;
         Barcode = barcode;
-        CategoryId = categoryId;
-        TotalQuantity = 0;
+        SetCategoryId(categoryId);
     }
-    
-    public void UpdateDetails(string name, string category, decimal? optimalTemperature, 
-                            decimal? optimalHumidity, string? barcode)
+
+    /// <summary>
+    /// Sets the category ID from a CategoryId value object
+    /// </summary>
+    private void SetCategoryId(CategoryId categoryId)
     {
-        if (string.IsNullOrWhiteSpace(name))
-            throw new ArgumentException("Product name is required");
-            
-        Name = name.Trim();
-        Category = category.Trim();
-        OptimalTemperature = optimalTemperature;
-        OptimalHumidity = optimalHumidity;
-        Barcode = barcode;
+        CategoryId = categoryId.Value;
     }
-    
-    public void UpdateExpirationDate(DateTime newExpirationDate)
-    {
-        if (newExpirationDate <= DateTime.UtcNow)
-            throw new ArgumentException("Expiration date must be in the future");
-            
-        ExpirationDate = newExpirationDate;
-    }
-    
-    public void UpdateTotalQuantity(int newQuantity)
-    {
-        if (newQuantity < 0)
-            throw new ArgumentException("Quantity cannot be negative");
-            
-        TotalQuantity = newQuantity;
-    }
-    
-    public bool IsEnvironmentallyCompliant(decimal currentTemperature, decimal currentHumidity)
-    {
-        if (!OptimalTemperature.HasValue && !OptimalHumidity.HasValue)
-            return true;
-            
-        var range = new EnvironmentalRange(
-            OptimalTemperature, OptimalTemperature,
-            OptimalHumidity, OptimalHumidity
-        );
-        
-        return range.IsWithinRange(currentTemperature, currentHumidity);
-    }
-    
-    private EProductStatus CalculateStatus()
-    {
-        var daysUntilExpiration = DaysUntilExpiration;
-        
-        if (daysUntilExpiration < 0)
-            return EProductStatus.Expired;
-        else if (daysUntilExpiration <= 3)
-            return EProductStatus.ExpiringSoon;
-        else
-            return EProductStatus.Fresh;
-    }
+
+    /// <summary>
+    /// Gets the category ID as a value object (for domain operations)
+    /// </summary>
+    public CategoryId GetCategoryId() => new CategoryId(CategoryId);
 }

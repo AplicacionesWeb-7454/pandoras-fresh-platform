@@ -1,22 +1,25 @@
-﻿namespace PandorasFreshPlatform.API.Inventory.Domain.Model.Commands;
+﻿using PandorasFreshPlatform.API.Inventory.Domain.Model.ValueObjects;
 
-using PandorasFreshPlatform.API.Inventory.Domain.Model.Entities;
+namespace PandorasFreshPlatform.API.Inventory.Domain.Model.Commands;
 
 /// <summary>
-///     Command to create an Inventory .
+/// Command to create a product.
 /// </summary>
-/// <param name="ProductId">
-///     The Id of the Product 
-/// </param>
-///
 /// <param name="Name">
-///     The name of the Product to Add to 
+/// The name of the product to create.
 /// </param>
-///
+/// <param name="Description">
+/// The description of the product to create.
+/// </param>
+/// <param name="Barcode">
+/// The barcode of the product to create.
+/// </param>
 /// <param name="CategoryId">
-///     The Id of the Category for the product
+/// The ID of the category for the product.
 /// </param>
-/// 
-/// 
-
-public record CreateProductCommand(ProductIdentifier ProductId, string Name, int CategoryId);
+public record CreateProductCommand(
+    string Name, 
+    string Description, 
+    string Barcode, 
+    CategoryId CategoryId
+);

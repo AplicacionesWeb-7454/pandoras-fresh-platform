@@ -51,11 +51,11 @@ public static class ModelBuilderExtensions
         // InventoryItem Aggregate
         builder.Entity<InventoryItem>().HasKey(i => i.Id);
         
-        // Configure InventoryItemId value object conversion - FIXED
+        // Configure InventoryItemId value object conversion
         builder.Entity<InventoryItem>()
             .Property(i => i.Id)
             .HasConversion(
-                id => id.Id,  // Use .Id instead of .Value
+                id => id.Id,
                 value => new InventoryItemId(value))
             .IsRequired()
             .ValueGeneratedOnAdd();
@@ -66,13 +66,13 @@ public static class ModelBuilderExtensions
         // Location Value Object (Owned Type)
         builder.Entity<InventoryItem>().OwnsOne(i => i.Location, l =>
         {
-            l.Property(loc => loc.Value).HasColumnName("Location").HasMaxLength(200); // Fixed parameter name
+            l.Property(loc => loc.Value).HasColumnName("Location").HasMaxLength(200);
         });
 
         // InventoryItem-StorageBox Relationship
         builder.Entity<InventoryItem>()
             .HasMany(i => i.StorageBoxes)
-            .WithOne(sb => sb.Inventory)
+            .WithOne()
             .HasForeignKey(sb => sb.InventoryId)
             .OnDelete(DeleteBehavior.Cascade);
 
@@ -109,7 +109,7 @@ public static class ModelBuilderExtensions
         // StorageBox-ProductInstance Relationship
         builder.Entity<StorageBox>()
             .HasMany(sb => sb.ProductInstances)
-            .WithOne(pi => pi.StorageBox)
+            .WithOne()
             .HasForeignKey(pi => pi.StorageBoxId)
             .OnDelete(DeleteBehavior.Cascade);
 

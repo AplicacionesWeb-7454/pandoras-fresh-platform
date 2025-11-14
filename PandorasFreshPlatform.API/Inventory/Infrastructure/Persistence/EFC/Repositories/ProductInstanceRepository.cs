@@ -21,18 +21,24 @@ public class ProductInstanceRepository(AppDbContext context) : BaseRepository<Pr
         return await Context.Set<ProductInstance>()
             .Include(pi => pi.Product)
                 .ThenInclude(p => p.Category)
-            .Where(pi => pi.StorageBoxId.HasValue && pi.StorageBoxId.Value.Equals(storageBoxId))
+            .Where(pi => pi.StorageBoxId.HasValue && pi.StorageBoxId.Value == storageBoxId.Id)
             .ToListAsync();
     }
 
     /// <inheritdoc />
     public async Task<IEnumerable<ProductInstance>> FindByInventoryIdAsync(InventoryItemId inventoryId)
     {
+        // Since ProductInstance doesn't have a direct navigation to StorageBox,
+        // we need to query StorageBox first and then get related ProductInstances
+        var storageBoxIds = await Context.Set<StorageBox>()
+            .Where(sb => sb.InventoryId == inventoryId.Id)
+            .Select(sb => sb.Id)
+            .ToListAsync();
+
         return await Context.Set<ProductInstance>()
             .Include(pi => pi.Product)
                 .ThenInclude(p => p.Category)
-            .Include(pi => pi.StorageBox)
-            .Where(pi => pi.StorageBox != null && pi.StorageBox.InventoryId.Equals(inventoryId))
+            .Where(pi => pi.StorageBoxId.HasValue && storageBoxIds.Contains(pi.StorageBoxId.Value))
             .ToListAsync();
     }
 
@@ -42,8 +48,7 @@ public class ProductInstanceRepository(AppDbContext context) : BaseRepository<Pr
         return await Context.Set<ProductInstance>()
             .Include(pi => pi.Product)
                 .ThenInclude(p => p.Category)
-            .Include(pi => pi.StorageBox)
-            .Where(pi => pi.ExpirationDate.Date <= threshold)
+            .Where(pi => pi.ExpirationDate.Date <= threshold.Date)
             .ToListAsync();
     }
 
@@ -51,8 +56,7 @@ public class ProductInstanceRepository(AppDbContext context) : BaseRepository<Pr
     public async Task<IEnumerable<ProductInstance>> FindByProductIdAsync(ProductId productId)
     {
         return await Context.Set<ProductInstance>()
-            .Include(pi => pi.StorageBox)
-            .Where(pi => pi.ProductId.Equals(productId))
+            .Where(pi => pi.ProductId == productId.Value)
             .ToListAsync();
     }
 
@@ -62,7 +66,6 @@ public class ProductInstanceRepository(AppDbContext context) : BaseRepository<Pr
         return await Context.Set<ProductInstance>()
             .Include(pi => pi.Product)
                 .ThenInclude(p => p.Category)
-            .Include(pi => pi.StorageBox)
             .ToListAsync();
     }
 
@@ -72,7 +75,6 @@ public class ProductInstanceRepository(AppDbContext context) : BaseRepository<Pr
         return await Context.Set<ProductInstance>()
             .Include(pi => pi.Product)
                 .ThenInclude(p => p.Category)
-            .Include(pi => pi.StorageBox)
             .Where(pi => pi.Status == status)
             .ToListAsync();
     }
@@ -83,8 +85,7 @@ public class ProductInstanceRepository(AppDbContext context) : BaseRepository<Pr
         return await Context.Set<ProductInstance>()
             .Include(pi => pi.Product)
                 .ThenInclude(p => p.Category)
-            .Include(pi => pi.StorageBox)
-            .FirstOrDefaultAsync(pi => pi.Id.Equals(id));
+            .FirstOrDefaultAsync(pi => pi.Id == id.Id);
     }
 
     /// <inheritdoc />
@@ -93,7 +94,6 @@ public class ProductInstanceRepository(AppDbContext context) : BaseRepository<Pr
         return await Context.Set<ProductInstance>()
             .Include(pi => pi.Product)
                 .ThenInclude(p => p.Category)
-            .Include(pi => pi.StorageBox)
             .ToListAsync();
     }
 }

@@ -33,7 +33,7 @@ public partial class ProductInstance
         new ExpirationDate(command.ExpirationDate),
         new EntryDate(command.EntryDate),
         new Batch(command.BatchNumber),
-        command.ProductId)
+        command.ProductId.Value) // FIX: Extract the Value from ProductId
     {
     }
 
@@ -45,9 +45,8 @@ public partial class ProductInstance
     public EProductStatus Status { get; private set; }
     public Product Product { get; internal set; }
     public int ProductId { get; private set; }
-    
-    // Added navigation properties for StorageBox relationship
-    public StorageBox? StorageBox { get; private set; }
+
+
     public int? StorageBoxId { get; private set; }
 
     /// <summary>
@@ -56,7 +55,6 @@ public partial class ProductInstance
     public void UpdateStatus()
     {
         var daysUntilExpiration = (ExpirationDate.Date - DateTime.UtcNow).Days;
-        
         Status = daysUntilExpiration switch
         {
             <= 0 => EProductStatus.Expired,
@@ -78,7 +76,6 @@ public partial class ProductInstance
     /// </summary>
     public void AssignToStorageBox(StorageBox storageBox)
     {
-        StorageBox = storageBox;
         StorageBoxId = storageBox.Id;
     }
 
@@ -87,7 +84,6 @@ public partial class ProductInstance
     /// </summary>
     public void RemoveFromStorageBox()
     {
-        StorageBox = null;
         StorageBoxId = null;
     }
 }

@@ -34,7 +34,7 @@ public partial class StorageBox
     public StorageBox(CreateStorageBoxCommand command) : this(command.Label, 
         new Capacity(command.MaxCapacity, command.CurrentCapacity), 
         new StorageConditions(command.TemperatureRange),
-        command.InventoryId)
+        command.InventoryId.Id) // FIX: Extract the Value from InventoryItemId
     {
     }
 
@@ -44,7 +44,6 @@ public partial class StorageBox
     public Capacity Capacity { get; private set; }
     public StorageConditions StorageConditions { get; private set; }
     public int InventoryId { get; private set; }
-    public InventoryItem Inventory { get; private set; }
     public ICollection<ProductInstance> ProductInstances { get; }
 
     /// <summary>

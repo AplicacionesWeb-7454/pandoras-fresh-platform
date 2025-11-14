@@ -18,10 +18,16 @@ public class ProductQueryRepository(AppDbContext context) : IProductQueryReposit
     /// <inheritdoc />
     public async Task<IEnumerable<Product>> GetProductTypesByInventoryAsync(InventoryItemId inventoryId)
     {
+        // Get storage box IDs for the given inventory
+        var storageBoxIds = await context.Set<StorageBox>()
+            .Where(sb => sb.InventoryId == inventoryId.Id)
+            .Select(sb => sb.Id)
+            .ToListAsync();
+
         return await context.Set<ProductInstance>()
             .Include(pi => pi.Product)
                 .ThenInclude(p => p.Category)
-            .Where(pi => pi.StorageBox != null && pi.StorageBox.InventoryId.Equals(inventoryId))
+            .Where(pi => pi.StorageBoxId.HasValue && storageBoxIds.Contains(pi.StorageBoxId.Value))
             .Select(pi => pi.Product)
             .Distinct()
             .ToListAsync();
@@ -33,7 +39,7 @@ public class ProductQueryRepository(AppDbContext context) : IProductQueryReposit
         return await context.Set<ProductInstance>()
             .Include(pi => pi.Product)
                 .ThenInclude(p => p.Category)
-            .Where(pi => pi.StorageBoxId.HasValue && pi.StorageBoxId.Value.Equals(storageBoxId))
+            .Where(pi => pi.StorageBoxId.HasValue && pi.StorageBoxId.Value == storageBoxId.Id)
             .Select(pi => pi.Product)
             .Distinct()
             .ToListAsync();
@@ -45,12 +51,11 @@ public class ProductQueryRepository(AppDbContext context) : IProductQueryReposit
         var query = context.Set<ProductInstance>()
             .Include(pi => pi.Product)
                 .ThenInclude(p => p.Category)
-            .Include(pi => pi.StorageBox)
             .AsQueryable();
 
         if (categoryId is not null)
         {
-            query = query.Where(pi => pi.Product.CategoryId.Equals(categoryId));
+            query = query.Where(pi => pi.Product.CategoryId == categoryId.Value);
         }
 
         if (!string.IsNullOrEmpty(status))
@@ -63,12 +68,17 @@ public class ProductQueryRepository(AppDbContext context) : IProductQueryReposit
 
         if (inventoryId is not null)
         {
-            query = query.Where(pi => pi.StorageBox != null && pi.StorageBox.InventoryId.Equals(inventoryId));
+            // Get storage box IDs for the given inventory
+            var storageBoxIds = context.Set<StorageBox>()
+                .Where(sb => sb.InventoryId == inventoryId.Id)
+                .Select(sb => sb.Id);
+
+            query = query.Where(pi => pi.StorageBoxId.HasValue && storageBoxIds.Contains(pi.StorageBoxId.Value));
         }
 
         if (storageBoxId is not null)
         {
-            query = query.Where(pi => pi.StorageBoxId.HasValue && pi.StorageBoxId.Value.Equals(storageBoxId));
+            query = query.Where(pi => pi.StorageBoxId.HasValue && pi.StorageBoxId.Value == storageBoxId.Id);
         }
 
         return await query.ToListAsync();
@@ -83,13 +93,19 @@ public class ProductQueryRepository(AppDbContext context) : IProductQueryReposit
 
         if (categoryId is not null)
         {
-            query = query.Where(p => p.CategoryId.Equals(categoryId));
+            query = query.Where(p => p.CategoryId == categoryId.Value);
         }
 
         if (inventoryId is not null)
         {
+            // Get storage box IDs for the given inventory
+            var storageBoxIds = context.Set<StorageBox>()
+                .Where(sb => sb.InventoryId == inventoryId.Id)
+                .Select(sb => sb.Id);
+
+            // Get product instances in those storage boxes
             var productIdsInInventory = context.Set<ProductInstance>()
-                .Where(pi => pi.StorageBox != null && pi.StorageBox.InventoryId.Equals(inventoryId))
+                .Where(pi => pi.StorageBoxId.HasValue && storageBoxIds.Contains(pi.StorageBoxId.Value))
                 .Select(pi => pi.ProductId)
                 .Distinct();
 
@@ -102,18 +118,27 @@ public class ProductQueryRepository(AppDbContext context) : IProductQueryReposit
     /// <inheritdoc />
     public async Task<IEnumerable<object>> GetInventoryQuickViewAsync()
     {
-        return await context.Set<InventoryItem>()
-            .Select(i => new
-            {
-                InventoryId = i.Id,
-                InventoryName = i.Name,
-                TotalStorageBoxes = i.StorageBoxes.Count,
-                TotalProductInstances = i.StorageBoxes.Sum(sb => sb.ProductInstances.Count),
-                ExpiringSoon = i.StorageBoxes
-                    .SelectMany(sb => sb.ProductInstances)
-                    .Count(pi => pi.ExpirationDate.Date <= DateTime.UtcNow.AddDays(3) && 
-                                pi.ExpirationDate.Date > DateTime.UtcNow)
-            })
-            .ToListAsync();
+        // Since InventoryItem uses InventoryItemId but StorageBox uses int for InventoryId,
+        // we need to handle the conversion properly
+        var inventoryItems = await context.Set<InventoryItem>().ToListAsync();
+        var storageBoxes = await context.Set<StorageBox>().ToListAsync();
+        var productInstances = await context.Set<ProductInstance>().ToListAsync();
+
+        var result = inventoryItems.Select(i => new
+        {
+            InventoryId = i.Id,
+            InventoryName = i.Name,
+            TotalStorageBoxes = storageBoxes.Count(sb => sb.InventoryId == i.Id.Id),
+            TotalProductInstances = productInstances.Count(pi => 
+                pi.StorageBoxId.HasValue && 
+                storageBoxes.Any(sb => sb.Id == pi.StorageBoxId.Value && sb.InventoryId == i.Id.Id)),
+            ExpiringSoon = productInstances.Count(pi => 
+                pi.StorageBoxId.HasValue && 
+                storageBoxes.Any(sb => sb.Id == pi.StorageBoxId.Value && sb.InventoryId == i.Id.Id) &&
+                pi.ExpirationDate.Date <= DateTime.UtcNow.AddDays(3) && 
+                pi.ExpirationDate.Date > DateTime.UtcNow)
+        });
+
+        return result.ToList();
     }
 }

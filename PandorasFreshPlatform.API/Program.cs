@@ -13,18 +13,19 @@ builder.Services.AddControllers(options => options.Conventions.Add(new KebabCase
 builder.Services.AddOpenApi();
 builder.Services.AddSwaggerGen(options => options.EnableAnnotations());
 
-// Add Database Connection
+// Add Database Connection (OPCIONAL)
+bool isDatabaseConfigured = false;
+
 if (builder.Environment.IsDevelopment())
-    builder.Services.AddDbContext<AppDbContext>(options =>
+{
+    var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+    var password = builder.Configuration["DbPassword"];
+    
+    // Solo configurar la base de datos si hay connection string y password
+    if (!string.IsNullOrEmpty(connectionString) && !string.IsNullOrEmpty(password))
+    {
+        builder.Services.AddDbContext<AppDbContext>(options =>
         {
-            var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-            if (string.IsNullOrEmpty(connectionString)) throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
-            
-            var password = builder.Configuration["DbPassword"];
-            if (string.IsNullOrEmpty(password))
-                throw new InvalidOperationException("Database password not found in user secrets.");
-            
-            // Build the complete connection string
             var completeConnectionString = $"{connectionString}password={password};";
             
             options.UseMySQL(completeConnectionString)
@@ -32,10 +33,22 @@ if (builder.Environment.IsDevelopment())
                 .EnableSensitiveDataLogging()
                 .EnableDetailedErrors();
         });
+        
+        isDatabaseConfigured = true;
+        Console.WriteLine("✅ Database configured successfully.");
+    }
+    else
+    {
+        Console.WriteLine("⚠️ Database configuration not found. Running without database.");
+    }
+}
 
 // Bounded Contexts Dependency Injection
-// Shared Context Dependency Injection
-builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+// Shared Context Dependency Injection - SOLO SI HAY BASE DE DATOS
+if (isDatabaseConfigured)
+{
+    builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+}
 
 // News Context Dependency Injection
 
@@ -45,13 +58,40 @@ var app = builder.Build();
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
+    // REDIRIGIR A SWAGGER AL ABRIR EL NAVEGADOR - DEBE IR ANTES DE SWAGGER
+    app.Use(async (context, next) =>
+    {
+        if (context.Request.Path == "/")
+        {
+            context.Response.Redirect("/swagger");
+            return;
+        }
+        await next();
+    });
+    
     app.MapOpenApi();
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 
-using var scope = app.Services.CreateScope();
-scope.ServiceProvider.GetRequiredService<AppDbContext>().Database.EnsureCreated();
+// Crear la base de datos solo si está configurada
+if (isDatabaseConfigured)
+{
+    using var scope = app.Services.CreateScope();
+    var dbContext = scope.ServiceProvider.GetService<AppDbContext>();
+    if (dbContext != null)
+    {
+        try
+        {
+            dbContext.Database.EnsureCreated();
+            Console.WriteLine("✅ Database initialized successfully.");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"⚠️ Could not initialize database: {ex.Message}");
+        }
+    }
+}
 
 app.UseHttpsRedirection();
 

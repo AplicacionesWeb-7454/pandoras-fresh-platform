@@ -1,0 +1,12 @@
+{
+  "Version": 1,
+  "Hash": "bJFfGl67KIRGz8qcIkhwGiHFCd1joYfnkghaFgtF8qo=",
+  "Source": "pandoraFr.API",
+  "BasePath": "_content/pandoraFr.API",
+  "Mode": "Default",
+  "ManifestType": "Build",
+  "ReferencedProjectsConfiguration": [],
+  "DiscoveryPatterns": [],
+  "Assets": [],
+  "Endpoints": []
+}

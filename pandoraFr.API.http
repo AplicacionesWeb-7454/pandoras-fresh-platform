@@ -1,0 +1,6 @@
+@pandoraFr.API_HostAddress = http://localhost:5063
+
+GET {{pandoraFr.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

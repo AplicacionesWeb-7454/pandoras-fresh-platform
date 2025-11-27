@@ -1,10 +1,9 @@
-namespace PandorasFreshPlatform.API.Shared.Domain.Repositories;
+﻿namespace pandoraFr.API.Shared.Domain.Repositories;
 
-public interface IBaseRepository<TEntity>
+public interface IBaseRepository<T> where T : class
 {
-    Task                        AddAsync(TEntity entity);
-    Task<TEntity?>              FindByIdAsync(int id);
-    Task<IEnumerable<TEntity>>  ListAsync();
-    void                        Update(TEntity entity);
-    void                        Remove(TEntity entity);
+    Task<IEnumerable<T>> ListAsync();
+    Task<T?> FindByIdAsync(Guid id);
+    Task AddAsync(T entity);
+    void Remove(T entity);
 }

@@ -1,62 +1,67 @@
-using PandorasFreshPlatform.API.Shared.Domain.Repositories;
-using PandorasFreshPlatform.API.Shared.Infrastructure.Interfaces.ASP.Configuration;
-using PandorasFreshPlatform.API.Shared.Infrastructure.Persistence.EFC.Configuration;
-using PandorasFreshPlatform.API.Shared.Infrastructure.Persistence.EFC.Repositories;
+using CatchUpPlatform.API.Reports.Application.Internal.CommandServices.Handlers;
 using Microsoft.EntityFrameworkCore;
+using pandoraFr.API.Shared.Infrastructure.Persistence.EFC.Configuration;
+using pandoraFr.API.Shared.Domain.Repositories;
+using pandoraFr.API.Shared.Infrastructure.Persistence.EFC.Repositories;
+
+using pandoraFr.API.Reports.Domain.Repositories;
+using pandoraFr.API.Reports.Domain.Services;
+using pandoraFr.API.Reports.Infrastructure.Persistence.EFC.Repositories;
+
+using pandoraFr.API.Reports.Application.Internal.CommandServices.Handlers;
+using pandoraFr.API.Reports.Application.Internal.QueryServices.Handlers;
+using pandoraFr.API.Reports.Domain.Services.Implementations;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+// 🔧 Configuración de EF Core con MySQL
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseMySql(
+        builder.Configuration.GetConnectionString("DefaultConnection"),
+        new MySqlServerVersion(new Version(8, 0, 40))
+    ));
 
-builder.Services.AddControllers(options => options.Conventions.Add(new KebabCaseRouteNamingConvention()));
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-builder.Services.AddOpenApi();
-builder.Services.AddSwaggerGen(options => options.EnableAnnotations());
-
-// Add Database Connection
-if (builder.Environment.IsDevelopment())
-    builder.Services.AddDbContext<AppDbContext>(options =>
-        {
-            var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-            if (string.IsNullOrEmpty(connectionString)) throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
-            
-            var password = builder.Configuration["DbPassword"];
-            if (string.IsNullOrEmpty(password))
-                throw new InvalidOperationException("Database password not found in user secrets.");
-            
-            // Build the complete connection string
-            var completeConnectionString = $"{connectionString}password={password};";
-            
-            options.UseMySQL(completeConnectionString)
-                .LogTo(Console.WriteLine, LogLevel.Information)
-                .EnableSensitiveDataLogging()
-                .EnableDetailedErrors();
-        });
-
-// Bounded Contexts Dependency Injection
-// Shared Context Dependency Injection
+// 🧩 Repositorios compartidos
+builder.Services.AddScoped(typeof(IBaseRepository<>), typeof(BaseRepository<>));
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
-// News Context Dependency Injection
+// 📦 Repositorios específicos de Reports
+builder.Services.AddScoped<IInventoryReadRepository, InventoryReadRepository>();
+builder.Services.AddScoped<ILossesReadRepository, LossesReadRepository>();
+builder.Services.AddScoped<IReportWriteRepository, ReportWriteRepository>();
 
+// 🛠️ Servicios de dominio
+builder.Services.AddScoped<IReportBuilderService, ReportBuilderService>();
+builder.Services.AddScoped<IReportExportService, ReportExportService>();
+builder.Services.AddScoped<IEmailSenderService, EmailSenderService>();
+
+// 🧠 Handlers de comandos y queries
+builder.Services.AddScoped<GenerateInventoryReportCommandHandler>();
+builder.Services.AddScoped<GenerateLossesReportCommandHandler>();
+builder.Services.AddScoped<ExportReportCommandHandler>();
+builder.Services.AddScoped<ShareReportCommandHandler>();
+builder.Services.AddScoped<GetDashboardMetricsQueryHandler>();
+
+// 📖 Swagger
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
+// ✅ Controladores
+builder.Services.AddControllers();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// ✅ Middleware de Swagger
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
     app.UseSwagger();
-    app.UseSwaggerUI();
+    app.UseSwaggerUI(c =>
+    {
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "PandoraFr API v1");
+        c.RoutePrefix = string.Empty; // Swagger en la raíz: http://localhost:5000
+    });
 }
 
-using var scope = app.Services.CreateScope();
-scope.ServiceProvider.GetRequiredService<AppDbContext>().Database.EnsureCreated();
-
-app.UseHttpsRedirection();
-
-app.UseAuthorization();
-
+// Middleware y endpoints
 app.MapControllers();
-
 app.Run();

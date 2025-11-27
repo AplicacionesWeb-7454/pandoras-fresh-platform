@@ -1,12 +1,21 @@
-using PandorasFreshPlatform.API.Shared.Domain.Repositories;
-using PandorasFreshPlatform.API.Shared.Infrastructure.Persistence.EFC.Configuration;
+﻿using System.Threading.Tasks;
+using pandoraFr.API.Shared.Domain.Repositories;
+using pandoraFr.API.Shared.Infrastructure.Persistence.EFC.Configuration;
 
-namespace PandorasFreshPlatform.API.Shared.Infrastructure.Persistence.EFC.Repositories;
-
-public class UnitOfWork(AppDbContext context) : IUnitOfWork
+namespace pandoraFr.API.Shared.Infrastructure.Persistence.EFC.Repositories
 {
-    public async Task CompleteAsync()
+    public class UnitOfWork : IUnitOfWork
     {
-        await context.SaveChangesAsync();
+        private readonly AppDbContext _context;
+
+        public UnitOfWork(AppDbContext context)
+        {
+            _context = context;
+        }
+
+        public async Task CompleteAsync()
+        {
+            await _context.SaveChangesAsync();
+        }
     }
 }

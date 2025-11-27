@@ -1,6 +1,9 @@
-namespace PandorasFreshPlatform.API.Shared.Domain.Repositories;
+﻿using System.Threading.Tasks;
 
-public interface IUnitOfWork
+namespace pandoraFr.API.Shared.Domain.Repositories
 {
-    Task CompleteAsync();
+    public interface IUnitOfWork
+    {
+        Task CompleteAsync();
+    }
 }

@@ -1,38 +1,39 @@
-using PandorasFreshPlatform.API.Shared.Domain.Repositories;
-using PandorasFreshPlatform.API.Shared.Infrastructure.Persistence.EFC.Configuration;
+﻿using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using pandoraFr.API.Shared.Domain.Repositories;
+using pandoraFr.API.Shared.Infrastructure.Persistence.EFC.Configuration;
 
-namespace PandorasFreshPlatform.API.Shared.Infrastructure.Persistence.EFC.Repositories;
-
-public class BaseRepository<TEntity> : IBaseRepository<TEntity> where TEntity : class
+namespace pandoraFr.API.Shared.Infrastructure.Persistence.EFC.Repositories
 {
-    protected readonly AppDbContext Context;
-    public BaseRepository(AppDbContext context)
+    public class BaseRepository<T> : IBaseRepository<T> where T : class
     {
-        Context = context;
-    }
-    public async Task AddAsync(TEntity entity)
-    {
-        await Context.Set<TEntity>().AddAsync(entity);
-    }
+        protected readonly AppDbContext _context;
 
-    public async Task<TEntity?> FindByIdAsync(int id)
-    {
-        return await Context.Set<TEntity>().FindAsync(id);
-    }
+        public BaseRepository(AppDbContext context)
+        {
+            _context = context;
+        }
 
-    public async Task<IEnumerable<TEntity>> ListAsync()
-    {
-        return await Context.Set<TEntity>().ToListAsync();
-    }
+        public async Task<IEnumerable<T>> ListAsync()
+        {
+            return await _context.Set<T>().ToListAsync();
+        }
 
-    public void Update(TEntity entity)
-    {
-        Context.Set<TEntity>().Update(entity);
-    }
+        public async Task<T?> FindByIdAsync(Guid id)
+        {
+            return await _context.Set<T>().FindAsync(id);
+        }
 
-    public void Remove(TEntity entity)
-    {
-        Context.Set<TEntity>().Remove(entity);
+        public async Task AddAsync(T entity)
+        {
+            await _context.Set<T>().AddAsync(entity);
+        }
+
+        public void Remove(T entity)
+        {
+            _context.Set<T>().Remove(entity);
+        }
     }
 }
